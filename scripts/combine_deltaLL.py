@@ -1,6 +1,7 @@
 import ROOT
 import sys
 import numpy as np
+import math
 
 import argparse
 
@@ -103,9 +104,57 @@ for x in xvals:
 
 print(f"Combined graph has {combined.GetN()} points")
 
+
+# convert fractions to mixing angles:
+
+def f_to_alpha(f, to_alpha_Htt=False):
+    if f == 0.0:
+        return 0.0
+    sgn = 1.0 if f > 0 else -1.0
+    g = abs(f)
+
+    # sqrt(g) must be in [0,1] for arcsin argument
+    # if g > 1, clamp to 1 to avoid domain errors
+    root_g = math.sqrt(g)
+    if root_g > 1.0:
+        root_g = 1.0
+
+
+    alpha_mag = math.asin(root_g)
+
+    # convert to degrees
+    if to_alpha_Htt: alpha_mag=math.atan(math.tan(alpha_mag)/(2.38**.5)) # this also converts it into the Htt mixing angle 
+    alpha_mag*=180/math.pi
+    return sgn * alpha_mag
+
+# -------------------------------
+# BUILD DeltaLL vs alpha GRAPH
+# -------------------------------
+g_alpha = ROOT.TGraph()
+g_alpha.SetName("alpha_graph")
+g_alpha.SetTitle("#DeltaLL vs #alpha;#alpha;#DeltaLL")
+
+g_alphaHtt = ROOT.TGraph()
+g_alphaHtt.SetName("alphaHtt_graph")
+g_alphaHtt.SetTitle("#DeltaLL vs #alpha;#alpha;#DeltaLL")
+
+n = combined.GetN()
+x_f = combined.GetX()
+y = combined.GetY()
+
+for i in range(n):
+    alpha_i = f_to_alpha(x_f[i])
+    alphaHtt_i = f_to_alpha(x_f[i],True)
+    g_alpha.SetPoint(i, alpha_i, y[i])
+    g_alphaHtt.SetPoint(i, alphaHtt_i, y[i])
+
+print("Constructed DeltaLL vs alpha graph")
+
 # Save Output
 fout = ROOT.TFile(OUTFILE, "RECREATE")
 combined.Write()
+g_alpha.Write()
+g_alphaHtt.Write()
 fout.Close()
 
 print(f"Saved combined graph to {OUTFILE} as '{OUTGRAPH_NAME}'")
