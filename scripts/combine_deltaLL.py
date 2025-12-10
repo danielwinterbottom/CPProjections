@@ -23,7 +23,7 @@ args = parser.parse_args()
 inputs = args.inputs
 OUTFILE = args.output
 
-NPOINTS = 200
+NPOINTS = 20000
 OUTGRAPH_NAME = "graph"
 
 graphs = []

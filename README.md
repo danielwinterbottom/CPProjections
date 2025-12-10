@@ -18,5 +18,17 @@ This will also produce fractions and angles for the Htt coupling
 # Process the CMS ttH combination - this is mainly to convert the results to alpha formalism
 
 ```
-python scripts/combine_deltaLL.py -i "HIG-19-011.root:Figure 19a:Graph1D_y7" -o CMS_ttH_combined.root
+python scripts/combine_deltaLL.py "HIG-19-011.root:Figure 19a:Graph1D_y7" -o CMS_ttH_combined.root
+```
+
+# To combine the ttH and ggH results
+```
+python scripts/combine_deltaLL.py CMS_ggH_combined.root::graph CMS_ttH_combined.root::graph -o CMS_ttH_ggH_combined.root
+```
+
+
+# Extrapolate bounds to HL-LHC:
+
+```
+python scripts/extrapolate_bounds.py CMS_ggH_combined.root alpha_graph --lumi-orig 138 --lumi-target 3000  -o CMS_ggH_combined_extrapolated.root
 ```
