@@ -16,6 +16,7 @@ parser.add_argument(
     default="combined.root",
     help="Output ROOT file name (default: combined.root)"
 )
+parser.add_argument("--convert_ggH", action='store_true', help="convert f_ggH into f_ttH fraction")
 
 args = parser.parse_args()
 
@@ -104,10 +105,23 @@ for x in xvals:
 
 print(f"Combined graph has {combined.GetN()} points")
 
+# convert f_ggH into f_ttH
+
+def f_ggH_to_f_ttH(f):
+    if f == 0.0:
+        return 0.0
+    sgn = 1.0 if f > 0 else -1.0
+    g = abs(f)
+
+    g_new = 1/(1 + 2.38*(1/g-1))
+
+    f_new = g_new*sgn
+
+    return f_new
 
 # convert fractions to mixing angles:
 
-def f_to_alpha(f, to_alpha_Htt=False):
+def f_to_alpha(f):
     if f == 0.0:
         return 0.0
     sgn = 1.0 if f > 0 else -1.0
@@ -123,7 +137,6 @@ def f_to_alpha(f, to_alpha_Htt=False):
     alpha_mag = math.asin(root_g)
 
     # convert to degrees
-    if to_alpha_Htt: alpha_mag=math.atan(math.tan(alpha_mag)/(2.38**.5)) # this also converts it into the Htt mixing angle 
     alpha_mag*=180/math.pi
     return sgn * alpha_mag
 
@@ -132,11 +145,12 @@ def f_to_alpha(f, to_alpha_Htt=False):
 # -------------------------------
 g_alpha = ROOT.TGraph()
 g_alpha.SetName("alpha_graph")
-g_alpha.SetTitle("#DeltaLL vs #alpha;#alpha;#DeltaLL")
 
-g_alphaHtt = ROOT.TGraph()
-g_alphaHtt.SetName("alphaHtt_graph")
-g_alphaHtt.SetTitle("#DeltaLL vs #alpha;#alpha;#DeltaLL")
+if args.convert_ggH:
+    g_fHtt = ROOT.TGraph()
+    g_fHtt.SetName("fHtt_graph")
+    g_alphaHtt = ROOT.TGraph()
+    g_alphaHtt.SetName("alphaHtt_graph")
 
 n = combined.GetN()
 x_f = combined.GetX()
@@ -144,17 +158,26 @@ y = combined.GetY()
 
 for i in range(n):
     alpha_i = f_to_alpha(x_f[i])
-    alphaHtt_i = f_to_alpha(x_f[i],True)
     g_alpha.SetPoint(i, alpha_i, y[i])
-    g_alphaHtt.SetPoint(i, alphaHtt_i, y[i])
 
-print("Constructed DeltaLL vs alpha graph")
+    if args.convert_ggH:
+      fHtt_i = f_ggH_to_f_ttH(x_f[i])
+      alphaHtt_i = f_to_alpha(fHtt_i)
+      g_fHtt.SetPoint(i, fHtt_i, y[i])
+      g_alphaHtt.SetPoint(i, alphaHtt_i, y[i])
+
 
 # Save Output
 fout = ROOT.TFile(OUTFILE, "RECREATE")
-combined.Write()
-g_alpha.Write()
-g_alphaHtt.Write()
+if args.convert_ggH:
+  # if we are coverting we flip the names - just to make it less confusing when they are combined later with the ttH results
+  g_fHtt.Write('graph')
+  g_alphaHtt.Write('alpha_graph')
+  combined.Write('ggH_graph')
+  g_alpha.Write('ggH_alpha_graph')
+else:
+  combined.Write('graph')
+  g_alpha.Write('alpha_graph')
 fout.Close()
 
 print(f"Saved combined graph to {OUTFILE} as '{OUTGRAPH_NAME}'")
